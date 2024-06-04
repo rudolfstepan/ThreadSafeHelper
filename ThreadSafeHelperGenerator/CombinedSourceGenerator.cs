@@ -1,16 +1,17 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 
 
 namespace ThreadSafeHelperGenerator
 {
     [Generator]
-    public class ThreadSafetyGenerator : ISourceGenerator
+    public class CombinedSourceGenerator : ISourceGenerator
     {
         public void Initialize(GeneratorInitializationContext context)
         {
@@ -22,6 +23,8 @@ namespace ThreadSafeHelperGenerator
             if (!(context.SyntaxReceiver is SyntaxReceiver receiver))
                 return;
 
+            //System.Diagnostics.Debugger.Launch();
+
             foreach (var method in receiver.Methods)
             {
                 var model = context.Compilation.GetSemanticModel(method.SyntaxTree);
@@ -31,6 +34,7 @@ namespace ThreadSafeHelperGenerator
                 var namespaceDeclaration = (NamespaceDeclarationSyntax)classDeclaration.Parent;
 
                 var source = GenerateMethodWrapper(namespaceDeclaration.Name.ToString(), classDeclaration.Identifier.Text, methodSymbol);
+
                 context.AddSource($"{classDeclaration.Identifier.Text}_{method.Identifier.Text}_Generated.g.cs", SourceText.From(source, Encoding.UTF8));
             }
         }
@@ -47,10 +51,12 @@ namespace ThreadSafeHelperGenerator
             var singleExecutionAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "SingleExecutionAttribute");
             var debounceAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "DebounceAttribute");
             var readWriteLockAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "ReadWriteLockAttribute");
+            var timedExecutionAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "TimedExecutionAttribute");
 
             var sb = new StringBuilder($@"
 using System;
 using System.Threading;
+using System.Timers;
 
 namespace {@namespace}
 {{
@@ -236,6 +242,43 @@ namespace {@namespace}
 ");
             }
 
+            if (timedExecutionAttribute != null)
+            {
+                var intervalMilliseconds = (int)timedExecutionAttribute.ConstructorArguments[0].Value;
+                var runInBackground = (bool)timedExecutionAttribute.ConstructorArguments[1].Value;
+
+                sb.Append($@"
+        private System.Timers.Timer _{methodName}_timer;
+        private Thread _{methodName}_backgroundThread;
+
+        public void Start{methodName}Timer()
+        {{
+            _{methodName}_timer = new System.Timers.Timer({intervalMilliseconds});
+            _{methodName}_timer.Elapsed += (sender, e) =>
+            {{
+                if ({runInBackground.ToString().ToLower()})
+                {{
+                    _{methodName}_backgroundThread = new Thread(() => {methodName}_Implementation());
+                    _{methodName}_backgroundThread.IsBackground = true;
+                    _{methodName}_backgroundThread.Start();
+                }}
+                else
+                {{
+                    {methodName}_Implementation();
+                }}
+            }};
+            _{methodName}_timer.AutoReset = true;
+            _{methodName}_timer.Start();
+        }}
+
+        public void Stop{methodName}Timer()
+        {{
+            _{methodName}_timer?.Stop();
+            _{methodName}_timer?.Dispose();
+        }}
+");
+            }
+
             sb.Append($@"
     }}
 }}
@@ -244,7 +287,7 @@ namespace {@namespace}
             return sb.ToString();
         }
 
-        public class SyntaxReceiver : ISyntaxReceiver
+        private class SyntaxReceiver : ISyntaxReceiver
         {
             public List<MethodDeclarationSyntax> Methods { get; } = new List<MethodDeclarationSyntax>();
 

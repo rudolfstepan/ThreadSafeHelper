@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 
 namespace ThreadSafeHelperGenerator.Attributes
@@ -42,6 +40,19 @@ namespace ThreadSafeHelperGenerator.Attributes
         public ReadWriteLockAttribute(bool isReadLock)
         {
             IsReadLock = isReadLock;
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public class TimedExecutionAttribute : Attribute
+    {
+        public int IntervalMilliseconds { get; }
+        public bool RunInBackground { get; }
+
+        public TimedExecutionAttribute(int intervalMilliseconds, bool runInBackground = true)
+        {
+            IntervalMilliseconds = intervalMilliseconds;
+            RunInBackground = runInBackground;
         }
     }
 }

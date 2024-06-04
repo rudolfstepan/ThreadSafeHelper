@@ -16,12 +16,17 @@ namespace CodeGeneratorTestApp
 
             var service = new MyService();
 
+            var startMethod = service.GetType().GetMethod("StartDoWorkTimer", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            startMethod.Invoke(service, null);
+
+            Console.WriteLine("Timer gestartet.");
+
             // Erstelle mehrere Threads
             Thread[] threads = new Thread[10];
             for (int i = 0; i < threads.Length; i++)
             {
                 // Stellen Sie sicher, dass die generierte Methode aufgerufen wird
-                threads[i] = new Thread(service.Work_Debounce);
+                threads[i] = new Thread(service.Work_ThreadSafe);
                 threads[i].Start();
             }
 
@@ -33,19 +38,24 @@ namespace CodeGeneratorTestApp
 
             Console.WriteLine("Alle Threads beendet.");
 
+            var stopMethod = service.GetType().GetMethod("StopDoWorkTimer", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            stopMethod.Invoke(service, null);
+
+            Console.WriteLine("Timer beendet.");
+
             Console.ReadLine();
         }
     }
 
 
-    /// <summary>
-    /// Ein Service, der eine Methode enthält, die thread-sicher gemacht werden soll
-    /// </summary>
+
     public partial class MyService
     {
         // wir benutzen die Originalmethode, um die Thread-Sicherheit zu testen
-        //[ThreadSafe(1, waitForAvailability: true)]
-        [Debounce(500)]
+        [ThreadSafe(2, waitForAvailability: true)]
+        //[TimedExecution(100)]
+        //[SingleExecution]
+        //[Debounce(1000)]
         public void Work()
         {
             Work_Implementation();
@@ -57,6 +67,18 @@ namespace CodeGeneratorTestApp
             Thread.Sleep(5000); // Simuliert eine langwierige Aufgabe
             Console.WriteLine($"Die Methode ist von Thread {Thread.CurrentThread.ManagedThreadId} fertig.");
         }
+
+        [TimedExecution(1000)]
+        public void DoWork()
+        {
+            DoWork_Implementation();
+        }
+
+        private void DoWork_Implementation()
+        {
+            Console.WriteLine($"Die Methode wird vom Timer ausgeführt. " + DateTime.Now);
+        }
     }
+
 
 }

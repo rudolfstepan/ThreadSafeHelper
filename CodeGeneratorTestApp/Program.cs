@@ -21,7 +21,7 @@ namespace CodeGeneratorTestApp
             for (int i = 0; i < threads.Length; i++)
             {
                 // Stellen Sie sicher, dass die generierte Methode aufgerufen wird
-                threads[i] = new Thread(service.Work_ThreadSafe);
+                threads[i] = new Thread(service.Work_Debounce);
                 threads[i].Start();
             }
 
@@ -44,7 +44,8 @@ namespace CodeGeneratorTestApp
     public partial class MyService
     {
         // wir benutzen die Originalmethode, um die Thread-Sicherheit zu testen
-        [ThreadSafe(5, waitForAvailability: true)]
+        //[ThreadSafe(1, waitForAvailability: true)]
+        [Debounce(500)]
         public void Work()
         {
             Work_Implementation();

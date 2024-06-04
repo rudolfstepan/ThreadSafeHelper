@@ -31,7 +31,7 @@ namespace ThreadSafeHelperGenerator
                 var namespaceDeclaration = (NamespaceDeclarationSyntax)classDeclaration.Parent;
 
                 var source = GenerateMethodWrapper(namespaceDeclaration.Name.ToString(), classDeclaration.Identifier.Text, methodSymbol);
-                context.AddSource($"{classDeclaration.Identifier.Text}_{method.Identifier.Text}_ThreadSafe.g.cs", SourceText.From(source, Encoding.UTF8));
+                context.AddSource($"{classDeclaration.Identifier.Text}_{method.Identifier.Text}_Generated.g.cs", SourceText.From(source, Encoding.UTF8));
             }
         }
 
@@ -54,7 +54,6 @@ using System.Threading;
 
 namespace {@namespace}
 {{
-    // This is a generated class. Do not modify it manually.
     public partial class {className}
     {{
 ");
@@ -135,7 +134,20 @@ namespace {@namespace}
                     }}
                 }}
             }}
+");
+                if (returnType == "void")
+                {
+                    sb.Append($@"
+            return;
+");
+                }
+                else
+                {
+                    sb.Append($@"
             return default;
+");
+                }
+                sb.Append($@"
         }}
 ");
             }
@@ -155,7 +167,20 @@ namespace {@namespace}
                 {methodName}_lastInvocation = now;
                 {(returnType == "void" ? string.Empty : "return ")}{methodName}_Implementation({arguments});
             }}
+");
+                if (returnType == "void")
+                {
+                    sb.Append($@"
+            return;
+");
+                }
+                else
+                {
+                    sb.Append($@"
             return default;
+");
+                }
+                sb.Append($@"
         }}
 ");
             }
@@ -193,6 +218,20 @@ namespace {@namespace}
                     {methodName}_rwLock.ExitWriteLock();
                 }}
             }}
+");
+                if (returnType == "void")
+                {
+                    sb.Append($@"
+            return;
+");
+                }
+                else
+                {
+                    sb.Append($@"
+            return default;
+");
+                }
+                sb.Append($@"
         }}
 ");
             }
@@ -205,7 +244,7 @@ namespace {@namespace}
             return sb.ToString();
         }
 
-        private class SyntaxReceiver : ISyntaxReceiver
+        public class SyntaxReceiver : ISyntaxReceiver
         {
             public List<MethodDeclarationSyntax> Methods { get; } = new List<MethodDeclarationSyntax>();
 
@@ -219,127 +258,5 @@ namespace {@namespace}
             }
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-    //    [Generator]
-    //    public class ThreadSafetyGenerator : ISourceGenerator
-    //    {
-    //        public void Initialize(GeneratorInitializationContext context)
-    //        {
-    //            context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
-    //        }
-
-    //        public void Execute(GeneratorExecutionContext context)
-    //        {
-    //            if (!(context.SyntaxReceiver is SyntaxReceiver receiver))
-    //                return;
-
-    //            foreach (var method in receiver.Methods)
-    //            {
-    //                var model = context.Compilation.GetSemanticModel(method.SyntaxTree);
-    //                var methodSymbol = model.GetDeclaredSymbol(method) as IMethodSymbol;
-
-    //                var classDeclaration = (ClassDeclarationSyntax)method.Parent;
-    //                var namespaceDeclaration = (NamespaceDeclarationSyntax)classDeclaration.Parent;
-
-    //                var source = GenerateMethodWrapper(namespaceDeclaration.Name.ToString(), classDeclaration.Identifier.Text, methodSymbol);
-    //                context.AddSource($"{classDeclaration.Identifier.Text}_{method.Identifier.Text}_ThreadSafe.g.cs", SourceText.From(source, Encoding.UTF8));
-    //            }
-    //        }
-
-    //        private string GenerateMethodWrapper(string @namespace, string className, IMethodSymbol methodSymbol)
-    //        {
-    //            var methodName = methodSymbol.Name;
-    //            var returnType = methodSymbol.ReturnType.ToDisplayString();
-    //            var parameters = string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type.ToDisplayString()} {p.Name}"));
-    //            var arguments = string.Join(", ", methodSymbol.Parameters.Select(p => p.Name));
-
-    //            var sb = new StringBuilder($@"
-    //using System;
-    //using System.Threading;
-
-    //namespace {@namespace}
-    //{{
-    //    public partial class {className}
-    //    {{
-    //        private static readonly object {methodName}_lockObject = new object();
-    //        private static int {methodName}_currentConcurrentThreads = 0;
-
-    //        public {returnType} {methodName}_ThreadSafe({parameters})
-    //        {{
-    //            while (true)
-    //            {{
-    //                lock ({methodName}_lockObject)
-    //                {{
-    //                    if ({methodName}_currentConcurrentThreads < 5)
-    //                    {{
-    //                        {methodName}_currentConcurrentThreads++;
-    //                        break;
-    //                    }}
-    //                    else
-    //                    {{
-    //                        Console.WriteLine(""Thread "" + Thread.CurrentThread.ManagedThreadId + "" wird abgebrochen."");
-    //");
-    //            if (returnType == "void")
-    //            {
-    //                sb.Append($@"
-    //                        return;
-    //");
-    //            }
-    //            else
-    //            {
-    //                sb.Append($@"
-    //                        return default;
-    //");
-    //            }
-    //            sb.Append($@"
-    //                    }}
-    //                }}
-
-    //                Thread.Sleep(100);
-    //            }}
-
-    //            try
-    //            {{
-    //                {(returnType == "void" ? string.Empty : "return ")}{methodName}_Implementation({arguments});
-    //            }}
-    //            finally
-    //            {{
-    //                lock ({methodName}_lockObject)
-    //                {{
-    //                    {methodName}_currentConcurrentThreads--;
-    //                }}
-    //            }}
-    //        }}
-    //    }}
-    //}}
-    //");
-
-    //            return sb.ToString();
-    //        }
-
-    //        private class SyntaxReceiver : ISyntaxReceiver
-    //        {
-    //            public List<MethodDeclarationSyntax> Methods { get; } = new List<MethodDeclarationSyntax>();
-
-    //            public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
-    //            {
-    //                if (syntaxNode is MethodDeclarationSyntax methodDeclaration &&
-    //                    methodDeclaration.AttributeLists.Count > 0)
-    //                {
-    //                    Methods.Add(methodDeclaration);
-    //                }
-    //            }
-    //        }
-    //    }
 
 }

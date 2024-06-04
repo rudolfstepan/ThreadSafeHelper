@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.34928.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeGeneratorTestApp", "CodeGeneratorTestApp\CodeGeneratorTestApp.csproj", "{56570D74-C3E8-4462-AD8F-BC5D623F1B28}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThreadSafeHelperGenerator", "ThreadSafeHelperGenerator\ThreadSafeHelperGenerator.csproj", "{B38EF43D-1D54-4ABE-8542-E6E010AD52DF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{56570D74-C3E8-4462-AD8F-BC5D623F1B28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56570D74-C3E8-4462-AD8F-BC5D623F1B28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56570D74-C3E8-4462-AD8F-BC5D623F1B28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56570D74-C3E8-4462-AD8F-BC5D623F1B28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B38EF43D-1D54-4ABE-8542-E6E010AD52DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B38EF43D-1D54-4ABE-8542-E6E010AD52DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B38EF43D-1D54-4ABE-8542-E6E010AD52DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B38EF43D-1D54-4ABE-8542-E6E010AD52DF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4C7A486A-436D-4747-BB33-B4BC7D299DDE}
+	EndGlobalSection
+EndGlobal

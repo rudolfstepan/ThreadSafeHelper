@@ -4,7 +4,7 @@ This project provides a set of C# attributes and a source code generator to simp
 
 ## Attributes
 
-### 1. `ThreadSafeAttribute`
+### 1. ThreadSafeAttribute
 **Purpose**: Ensures that a method is executed by a limited number of concurrent threads.
 
 - **Parameters**:
@@ -20,7 +20,7 @@ public void CriticalSection()
 }
 ```
 ### 2. SingleExecutionAttribute
-Purpose: Ensures that a method is only executed once.
+**Purpose**: Ensures that a method is only executed once.
 
 Example Usage:
 ```csharp
@@ -31,7 +31,7 @@ public void InitializeOnce()
 }
 ```
 ### 3. DebounceAttribute
-Purpose: Prevents a method from being executed more frequently than a specified interval.
+**Purpose**: Prevents a method from being executed more frequently than a specified interval.
 
 Parameters:
 Milliseconds (int): Minimum time interval in milliseconds between consecutive method executions.
@@ -44,7 +44,7 @@ public void HandleRapidEvents()
 }
 ```
 ### 4. ReadWriteLockAttribute
-Purpose: Implements a read-write lock to ensure that either multiple read operations or a single write operation can occur concurrently.
+**Purpose**: Implements a read-write lock to ensure that either multiple read operations or a single write operation can occur concurrently.
 
 Parameters:
 IsReadLock (bool): Indicates whether the method uses a read lock (true) or a write lock (false).
@@ -57,7 +57,7 @@ public void ReadData()
 }
 ```
 ### 5. TimedExecutionAttribute
-Purpose: Declares that a method should be regularly executed by a timer.
+**Purpose**: Declares that a method should be regularly executed by a timer.
 
 Parameters:
 IntervalMilliseconds (int): Interval in milliseconds between method executions.

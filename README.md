@@ -18,44 +18,44 @@ public void CriticalSection()
 {
     // Method body
 }
-
+```
 ### 2. SingleExecutionAttribute
 Purpose: Ensures that a method is only executed once.
 
 Example Usage:
-
+```csharp
 [SingleExecution]
 public void InitializeOnce()
 {
     // Method body
 }
-
+```
 ### 3. DebounceAttribute
 Purpose: Prevents a method from being executed more frequently than a specified interval.
 
 Parameters:
 Milliseconds (int): Minimum time interval in milliseconds between consecutive method executions.
 Example Usage:
-
+```csharp
 [Debounce(1000)]
 public void HandleRapidEvents()
 {
     // Method body
 }
-
+```
 ### 4. ReadWriteLockAttribute
 Purpose: Implements a read-write lock to ensure that either multiple read operations or a single write operation can occur concurrently.
 
 Parameters:
 IsReadLock (bool): Indicates whether the method uses a read lock (true) or a write lock (false).
 Example Usage:
-
+```csharp
 [ReadWriteLock(isReadLock: true)]
 public void ReadData()
 {
     // Method body
 }
-
+```
 ### 5. TimedExecutionAttribute
 Purpose: Declares that a method should be regularly executed by a timer.
 
@@ -63,19 +63,19 @@ Parameters:
 IntervalMilliseconds (int): Interval in milliseconds between method executions.
 RunInBackground (bool): Indicates whether the method should be executed in a background thread (true) or the main thread (false).
 Example Usage:
-
+```csharp
 [TimedExecution(2000, runInBackground: true)]
 public void DoWork()
 {
     // Method body
 }
-
+```
 Source Code Generator
 The source code generator automatically generates the necessary code to implement the functionality specified by the attributes. This includes synchronization mechanisms, single execution checks, debouncing logic, read-write locks, and timer-based execution.
 
 Generated Code Example
 For a method decorated with multiple attributes, the generator creates a wrapper method that includes all specified functionality. Here is an example of what the generated code might look like:
-
+```csharp
 using System;
 using System.Threading;
 using System.Timers;
@@ -200,10 +200,10 @@ namespace YourNamespace
         }
     }
 }
-
+```
 Usage Example
 Here is an example demonstrating how to use the attributes and the generated code in a service class:
-
+```csharp
 public partial class MyService
 {
     [ThreadSafe(1, waitForAvailability: false)]
@@ -221,8 +221,9 @@ public partial class MyService
         Console.WriteLine($"Die Methode wird von einem Timer aufgerufen. Zeit: {DateTime.Now}");
     }
 }
+```
 And the corresponding main program to start and stop the timer:
-
+```csharp
 internal class Program
 {
     static void Main(string[] args)
@@ -240,7 +241,7 @@ internal class Program
         stopMethod.Invoke(service, null);
     }
 }
-
+```
 Benefits
 Simplicity: Developers only need to apply the relevant attributes, and the generator handles the rest.
 Automation: The generator automates the implementation of synchronization mechanisms and timer logic.

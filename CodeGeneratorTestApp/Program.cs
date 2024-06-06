@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using ThreadSafeHelperGenerator.Attributes;
 
@@ -19,10 +21,10 @@ namespace CodeGeneratorTestApp
             // Starte den Timer für die Methode DoWork()
             // Die Methode wird in regelmäßigen Abständen ausgeführt,
             // abhängig von den Parametern des Attributes
-            var startMethod = service.GetType().GetMethod("StartDoWorkTimer", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-            startMethod.Invoke(service, null);
+            //var startMethod = service.GetType().GetMethod("StartDoWorkTimer", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            //startMethod.Invoke(service, null);
 
-            Console.WriteLine("Timer gestartet.");
+            //Console.WriteLine("Timer gestartet.");
 
             // Beispiel für die Ausführung der Methode Work()
             // Die Methode wird von mehreren Threads aufgerufen
@@ -48,16 +50,51 @@ namespace CodeGeneratorTestApp
             //stopMethod.Invoke(service, null);
             //Console.WriteLine("Timer beendet.");
 
+
+
+
+            // cacheAttribute Test
+            var startMethod = service.GetType().GetMethod("StartTimerTimer", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            startMethod.Invoke(service, null);
+
+
+
             Console.ReadLine();
         }
-    }
 
+    }
 
     /// <summary>
     /// Testklasse beinhaltet Methoden, die durch den ThreadSafe-Generator umgewandelt werden.
     /// </summary>
     public partial class MyService
     {
+        #region CacheAttributeTest
+        [TimedExecution(300)]
+        public void Timer()
+        {
+            Timer_Implementation();
+        }
+        private void Timer_Implementation()
+        {
+            CachedWork();
+        }
+
+        [Cache(5)]
+        public string CachedWork()
+        {
+            return CachedWork_Implementation();
+        }
+
+        private string CachedWork_Implementation()
+        {
+            string s =  "CacheAttributeTest " + DateTime.Now;
+
+            Console.WriteLine(s);
+            return s;
+        }
+        #endregion
+
         /// <summary>
         /// Durch den ThreadSafe-Generator wird die Methode so umgewandelt, dass sie thread-sicher ist.
         /// Abhängig von den Parametern des Attributes wird die Methode entweder nur von einem Thread

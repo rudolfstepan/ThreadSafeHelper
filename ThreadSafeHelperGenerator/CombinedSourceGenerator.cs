@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
+using ThreadSafeHelperGenerator.Attributes;
+
 
 namespace ThreadSafeHelperGenerator
 {
@@ -52,6 +54,11 @@ namespace ThreadSafeHelperGenerator
             var debounceAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "DebounceAttribute");
             var readWriteLockAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "ReadWriteLockAttribute");
             var timedExecutionAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "TimedExecutionAttribute");
+
+            var cacheAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "CacheAttribute");
+            var retryAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "RetryAttribute");
+            var fallbackAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "FallbackAttribute");
+
 
             var sb = new StringBuilder($@"
 using System;
@@ -278,6 +285,36 @@ namespace {@namespace}
         }}
 ");
             }
+
+
+            if(cacheAttribute != null)
+            {
+                var cacheDuration = (int)cacheAttribute.ConstructorArguments[0].Value;
+
+                sb.Append($@"
+
+        private {returnType} {methodName}_cachedValue;
+        private DateTime {methodName}_cacheExpiration = DateTime.MinValue;
+
+        public {returnType} {methodName}_Cached({parameters})
+        {{
+            if(DateTime.Now > {methodName}_cacheExpiration)
+            {{
+                {methodName}_cachedValue = {methodName}_Implementation({arguments});
+                {methodName}_cacheExpiration = DateTime.Now.AddSeconds({cacheDuration});
+            }}
+
+            return {methodName}_cachedValue;
+        }}
+");
+            }
+
+
+
+
+
+
+
 
             sb.Append($@"
     }}

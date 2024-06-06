@@ -70,6 +70,20 @@ public void DoWork()
     // Method body
 }
 ```
+### 6. CacheAttribute
+**Purpose**: Caching of functions to reduce computation
+DurationInSeconds (int): Specifies the time in seconds of the cached function
+```csharp
+[AttributeUsage(AttributeTargets.Method)]
+public class CacheAttribute : Attribute
+{
+   public int DurationInSeconds { get; }
+   public CacheAttribute(int durationInSeconds)
+   {
+        DurationInSeconds = durationInSeconds;
+    }
+}
+```
 Source Code Generator
 The source code generator automatically generates the necessary code to implement the functionality specified by the attributes. This includes synchronization mechanisms, single execution checks, debouncing logic, read-write locks, and timer-based execution.
 

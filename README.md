@@ -74,14 +74,10 @@ public void DoWork()
 **Purpose**: Caching of functions to reduce computation
 DurationInSeconds (int): Specifies the time in seconds of the cached function
 ```csharp
-[AttributeUsage(AttributeTargets.Method)]
-public class CacheAttribute : Attribute
+[Cache(durationInSeconds: 5)]
+public string CachedMethod()
 {
-   public int DurationInSeconds { get; }
-   public CacheAttribute(int durationInSeconds)
-   {
-        DurationInSeconds = durationInSeconds;
-    }
+    // Method body
 }
 ```
 Source Code Generator

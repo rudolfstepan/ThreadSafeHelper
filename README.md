@@ -1,4 +1,4 @@
-# Thread-Safe and Timed Execution Source Code Generator
+# Thread-Safe, Timed Execution, Caching, Retry, Fallback Logic Source Code Generator
 
 This project provides a set of C# attributes and a source code generator to simplify the implementation of thread-safe methods and methods that are regularly executed by a timer. The generator automatically handles synchronization, single execution, debouncing, and read-write locking.
 
@@ -80,6 +80,39 @@ public string CachedMethod()
     // Method body
 }
 ```
+
+### 7. RetryAttribute
+**Purpose**: Retry executing of function until maxRetries occurs
+MaxRetries (int): Specifies the number of max retries until the function returns
+DelayMilliseconds (int): Specifies the time in milliseconds to wait for the next retry
+```csharp
+[Retry(int maxRetries, int delayMilliseconds = 1000)]
+public string Method()
+{
+    // Method body
+}
+```
+### 8. FallbackAttribute
+**Purpose**: Assign a fallback action/callback/method if the execution fails. Can be useful in combination with 'Retry'
+MaxRetries (int): Specifies the number of max retries until the function returns
+DelayMilliseconds (int): Specifies the time in milliseconds to wait for the next retry
+```csharp
+[Fallback(string fallbackMethodName)]
+public string Method()
+{
+    // Method body
+}
+
+// or a combination of both attributes to minimize manuel coding
+[Retry(int maxRetries, int delayMilliseconds = 1000)]
+[Fallback(string fallbackMethodName)]
+public string Method()
+{
+    // Method body
+}
+```
+
+
 Source Code Generator
 The source code generator automatically generates the necessary code to implement the functionality specified by the attributes. This includes synchronization mechanisms, single execution checks, debouncing logic, read-write locks, and timer-based execution.
 

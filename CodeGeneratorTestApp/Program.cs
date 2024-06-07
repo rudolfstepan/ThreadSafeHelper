@@ -16,7 +16,7 @@ namespace CodeGeneratorTestApp
         {
             Console.WriteLine("Running");
 
-            var service = new MyService();
+            var service = new ThreadingServiceExamples();
 
             // Starte den Timer für die Methode DoWork()
             // Die Methode wird in regelmäßigen Abständen ausgeführt,
@@ -54,9 +54,24 @@ namespace CodeGeneratorTestApp
 
 
             // cacheAttribute Test
-            var startMethod = service.GetType().GetMethod("StartTimerTimer", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-            startMethod.Invoke(service, null);
+            //var startMethod = service.GetType().GetMethod("StartTimerTimer", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            //startMethod.Invoke(service, null);
 
+
+            // retryAttribute & fallback Test
+            var retryService = new RetryServiceExamples();
+
+            // combine retry and fallback
+            retryService.UnreliableMethod_RetryFallback();
+
+            // retry only
+            //retryService.UnreliableMethod_Retry();
+
+
+            // fallback only
+            //retryService.UnreliableMethod_Fallback();
+
+            Console.WriteLine("Retry/Fallback beendet.");
 
 
             Console.ReadLine();
@@ -67,7 +82,7 @@ namespace CodeGeneratorTestApp
     /// <summary>
     /// Testklasse beinhaltet Methoden, die durch den ThreadSafe-Generator umgewandelt werden.
     /// </summary>
-    public partial class MyService
+    public partial class ThreadingServiceExamples
     {
         #region CacheAttributeTest
         [TimedExecution(300)]
@@ -144,6 +159,78 @@ namespace CodeGeneratorTestApp
             //Work_SingleExecution();
             //Work_Debounce();
             //Work_ReadWriteLock();
+        }
+    }
+
+    // Beispielklasse mit Methoden, die Retry und Fallback verwenden
+    public partial class RetryServiceExamples
+    {
+
+        [Retry(3, 2000)]
+        [Fallback(nameof(FallbackMethod_Implementation))]
+        public bool UnreliableMethod()
+        {
+            return UnreliableMethod_Implementation();
+        }
+
+        private bool UnreliableMethod_Implementation()
+        {
+
+            // Simulierte unzuverlässige Aktion
+            Console.WriteLine("Attempting operation...");
+            throw new Exception("Operation failed");
+        }
+
+        private bool FallbackMethod_Implementation()
+        {
+            Console.WriteLine("Executing fallback method...");
+
+            return false;
+        }
+
+        public static class RetryHelper
+        {
+            public static void Retry(Action action, Action fallback, int maxRetries, int delayMilliseconds)
+            {
+                int attempt = 0;
+                while (true)
+                {
+                    try
+                    {
+                        action();
+                        return;
+                    }
+                    catch
+                    {
+                        if (++attempt > maxRetries)
+                        {
+                            fallback?.Invoke();
+                            throw;
+                        }
+                        Thread.Sleep(delayMilliseconds);
+                    }
+                }
+            }
+
+            public static T Retry<T>(Func<T> action, Func<T> fallback, int maxRetries, int delayMilliseconds)
+            {
+                int attempt = 0;
+                while (true)
+                {
+                    try
+                    {
+                        return action();
+                    }
+                    catch
+                    {
+                        if (++attempt > maxRetries)
+                        {
+                            return fallback != null ? fallback() : default;
+                        }
+                        Thread.Sleep(delayMilliseconds);
+                    }
+                }
+            }
         }
     }
 

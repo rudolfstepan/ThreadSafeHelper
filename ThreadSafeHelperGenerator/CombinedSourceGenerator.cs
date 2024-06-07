@@ -286,7 +286,6 @@ namespace {@namespace}
 ");
             }
 
-
             if(cacheAttribute != null)
             {
                 var cacheDuration = (int)cacheAttribute.ConstructorArguments[0].Value;
@@ -310,10 +309,87 @@ namespace {@namespace}
             }
 
 
+            if (retryAttribute != null && fallbackAttribute != null)
+            {
+                var maxRetries = retryAttribute.ConstructorArguments[0].Value;
+                var retryInterval = retryAttribute.ConstructorArguments[1].Value;
+                var fallbackMethodName = (string)fallbackAttribute.ConstructorArguments[0].Value;
+
+                bool isVoid = returnType.ToLower() == "void";
+
+                sb.Append($@"
+        public {returnType} {methodName}_RetryFallback({parameters})
+        {{
+            for (int i = 0; i < {maxRetries}; i++)
+            {{
+                try
+                {{
+                    {(isVoid ? $"{methodName}_Implementation({arguments});" : $"return {methodName}_Implementation({arguments});")}
+                }}
+                catch
+                {{
+                    Thread.Sleep({retryInterval});
+                }}
+            }}
+
+            try
+            {{
+                return {fallbackMethodName}({arguments});
+            }}
+            catch
+            {{
+                {(isVoid ? "return;" : "return default;")}
+            }}
+        }}
+");
+            }
+            else if (retryAttribute != null && fallbackAttribute == null)
+            {
+                var maxRetries = retryAttribute.ConstructorArguments[0].Value;
+                var retryInterval = retryAttribute.ConstructorArguments[1].Value;
+
+                bool isVoid = returnType.ToLower() == "void";
+
+                sb.Append($@"
+        public {returnType} {methodName}_Retry({parameters})
+        {{
+            for (int i = 0; i < {maxRetries}; i++)
+            {{
+                try
+                {{
+                    {(isVoid ? $"{methodName}_Implementation({arguments});" : $"return {methodName}_Implementation({arguments});")}
+                }}
+                catch
+                {{
+                    Thread.Sleep({retryInterval});
+                }}
+            }}
+    
+            {(isVoid ? "return;" : "return default;")}
+        }}
+");
+            }
+            else if (fallbackAttribute != null && retryAttribute == null)
+            {
+                var fallbackMethodName = (string)fallbackAttribute.ConstructorArguments[0].Value;
+
+                bool isVoid = returnType.ToLower() == "void";
 
 
-
-
+                sb.Append($@"
+        public {returnType} {methodName}_Fallback({parameters})
+        {{
+            try
+            {{
+                {(isVoid ? $"{methodName}_Implementation({arguments});" : $"return {methodName}_Implementation({arguments});")}
+            }}
+            catch
+            {{
+                {(isVoid ? $"{fallbackMethodName}({arguments});" : $"return {fallbackMethodName}({arguments});")}
+            }}
+        }}
+");
+            }
 
 
             sb.Append($@"

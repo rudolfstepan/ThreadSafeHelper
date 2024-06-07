@@ -102,8 +102,9 @@ public string Method()
 {
     // Method body
 }
-
-// or a combination of both attributes to minimize manuel coding
+```
+Or a combination of both attributes to minimize manuel coding
+```csharp
 [Retry(int maxRetries, int delayMilliseconds = 1000)]
 [Fallback(string fallbackMethodName)]
 public string Method()
@@ -111,7 +112,6 @@ public string Method()
     // Method body
 }
 ```
-
 
 Source Code Generator
 The source code generator automatically generates the necessary code to implement the functionality specified by the attributes. This includes synchronization mechanisms, single execution checks, debouncing logic, read-write locks, and timer-based execution.

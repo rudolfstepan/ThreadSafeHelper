@@ -3,11 +3,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
-
-using ThreadSafeHelperGenerator.Attributes;
 
 
 namespace ThreadSafeHelperGenerator
@@ -25,8 +24,6 @@ namespace ThreadSafeHelperGenerator
             if (!(context.SyntaxReceiver is SyntaxReceiver receiver))
                 return;
 
-            //System.Diagnostics.Debugger.Launch();
-
             foreach (var method in receiver.Methods)
             {
                 var model = context.Compilation.GetSemanticModel(method.SyntaxTree);
@@ -43,23 +40,6 @@ namespace ThreadSafeHelperGenerator
 
         private string GenerateMethodWrapper(string @namespace, string className, IMethodSymbol methodSymbol)
         {
-            var methodName = methodSymbol.Name;
-            var returnType = methodSymbol.ReturnType.ToDisplayString();
-            var parameters = string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type.ToDisplayString()} {p.Name}"));
-            var arguments = string.Join(", ", methodSymbol.Parameters.Select(p => p.Name));
-
-            var attributes = methodSymbol.GetAttributes();
-            var threadSafeAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "ThreadSafeAttribute");
-            var singleExecutionAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "SingleExecutionAttribute");
-            var debounceAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "DebounceAttribute");
-            var readWriteLockAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "ReadWriteLockAttribute");
-            var timedExecutionAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "TimedExecutionAttribute");
-
-            var cacheAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "CacheAttribute");
-            var retryAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "RetryAttribute");
-            var fallbackAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "FallbackAttribute");
-
-
             var sb = new StringBuilder($@"
 using System;
 using System.Threading;
@@ -71,12 +51,38 @@ namespace {@namespace}
     {{
 ");
 
-            if (threadSafeAttribute != null)
-            {
-                var maxConcurrentThreads = (int)threadSafeAttribute.ConstructorArguments[0].Value;
-                var waitForAvailability = (bool)threadSafeAttribute.ConstructorArguments[1].Value;
+            var methodName = methodSymbol.Name;
+            var returnType = methodSymbol.ReturnType.ToDisplayString();
+            var parameters = string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type.ToDisplayString()} {p.Name}"));
+            var arguments = string.Join(", ", methodSymbol.Parameters.Select(p => p.Name));
 
-                sb.Append($@"
+            var attributes = methodSymbol.GetAttributes();
+
+            sb.Append(HandleThreadSafeAttribute(methodName, returnType, parameters, arguments, attributes));
+            sb.Append(HandleSingleExecutionAttribute(methodName, returnType, parameters, arguments, attributes));
+            sb.Append(HandleDebounceAttribute(methodName, returnType, parameters, arguments, attributes));
+            sb.Append(HandleReadWriteLockAttribute(methodName, returnType, parameters, arguments, attributes));
+            sb.Append(HandleTimedExecutionAttribute(methodName, attributes));
+            sb.Append(HandleCacheAttribute(methodName, returnType, parameters, arguments, attributes));
+            sb.Append(HandleRetryFallbackAttributes(methodName, returnType, parameters, arguments, attributes));
+
+            sb.Append($@"
+    }}
+}}
+");
+
+            return sb.ToString();
+        }
+
+        private string HandleThreadSafeAttribute(string methodName, string returnType, string parameters, string arguments, ImmutableArray<AttributeData> attributes)
+        {
+            var threadSafeAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "ThreadSafeAttribute");
+            if (threadSafeAttribute == null) return string.Empty;
+
+            var maxConcurrentThreads = (int)threadSafeAttribute.ConstructorArguments[0].Value;
+            var waitForAvailability = (bool)threadSafeAttribute.ConstructorArguments[1].Value;
+
+            var sb = new StringBuilder($@"
         private static readonly object {methodName}_lockObject = new object();
         private static int {methodName}_currentConcurrentThreads = 0;
 
@@ -95,19 +101,19 @@ namespace {@namespace}
                     {{
                         Console.WriteLine(""Thread "" + Thread.CurrentThread.ManagedThreadId + "" wird abgebrochen."");
 ");
-                if (returnType == "void")
-                {
-                    sb.Append($@"
+            if (returnType == "void")
+            {
+                sb.Append($@"
                         return;
 ");
-                }
-                else
-                {
-                    sb.Append($@"
+            }
+            else
+            {
+                sb.Append($@"
                         return default;
 ");
-                }
-                sb.Append($@"
+            }
+            sb.Append($@"
                     }}
                 }}
 
@@ -127,11 +133,16 @@ namespace {@namespace}
             }}
         }}
 ");
-            }
 
-            if (singleExecutionAttribute != null)
-            {
-                sb.Append($@"
+            return sb.ToString();
+        }
+
+        private string HandleSingleExecutionAttribute(string methodName, string returnType, string parameters, string arguments, ImmutableArray<AttributeData> attributes)
+        {
+            var singleExecutionAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "SingleExecutionAttribute");
+            if (singleExecutionAttribute == null) return string.Empty;
+
+            var sb = new StringBuilder($@"
         private static bool {methodName}_hasExecuted = false;
 
         public {returnType} {methodName}_SingleExecution({parameters})
@@ -148,28 +159,33 @@ namespace {@namespace}
                 }}
             }}
 ");
-                if (returnType == "void")
-                {
-                    sb.Append($@"
+            if (returnType == "void")
+            {
+                sb.Append($@"
             return;
 ");
-                }
-                else
-                {
-                    sb.Append($@"
+            }
+            else
+            {
+                sb.Append($@"
             return default;
 ");
-                }
-                sb.Append($@"
+            }
+            sb.Append($@"
         }}
 ");
-            }
 
-            if (debounceAttribute != null)
-            {
-                var milliseconds = (int)debounceAttribute.ConstructorArguments[0].Value;
+            return sb.ToString();
+        }
 
-                sb.Append($@"
+        private string HandleDebounceAttribute(string methodName, string returnType, string parameters, string arguments, ImmutableArray<AttributeData> attributes)
+        {
+            var debounceAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "DebounceAttribute");
+            if (debounceAttribute == null) return string.Empty;
+
+            var milliseconds = (int)debounceAttribute.ConstructorArguments[0].Value;
+
+            var sb = new StringBuilder($@"
         private static DateTime {methodName}_lastInvocation = DateTime.MinValue;
 
         public {returnType} {methodName}_Debounce({parameters})
@@ -181,28 +197,33 @@ namespace {@namespace}
                 {(returnType == "void" ? string.Empty : "return ")}{methodName}_Implementation({arguments});
             }}
 ");
-                if (returnType == "void")
-                {
-                    sb.Append($@"
+            if (returnType == "void")
+            {
+                sb.Append($@"
             return;
 ");
-                }
-                else
-                {
-                    sb.Append($@"
+            }
+            else
+            {
+                sb.Append($@"
             return default;
 ");
-                }
-                sb.Append($@"
+            }
+            sb.Append($@"
         }}
 ");
-            }
 
-            if (readWriteLockAttribute != null)
-            {
-                var isReadLock = (bool)readWriteLockAttribute.ConstructorArguments[0].Value;
+            return sb.ToString();
+        }
 
-                sb.Append($@"
+        private string HandleReadWriteLockAttribute(string methodName, string returnType, string parameters, string arguments, ImmutableArray<AttributeData> attributes)
+        {
+            var readWriteLockAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "ReadWriteLockAttribute");
+            if (readWriteLockAttribute == null) return string.Empty;
+
+            var isReadLock = (bool)readWriteLockAttribute.ConstructorArguments[0].Value;
+
+            var sb = new StringBuilder($@"
         private static readonly ReaderWriterLockSlim {methodName}_rwLock = new ReaderWriterLockSlim();
 
         public {returnType} {methodName}_ReadWriteLock({parameters})
@@ -232,29 +253,34 @@ namespace {@namespace}
                 }}
             }}
 ");
-                if (returnType == "void")
-                {
-                    sb.Append($@"
+            if (returnType == "void")
+            {
+                sb.Append($@"
             return;
 ");
-                }
-                else
-                {
-                    sb.Append($@"
+            }
+            else
+            {
+                sb.Append($@"
             return default;
 ");
-                }
-                sb.Append($@"
+            }
+            sb.Append($@"
         }}
 ");
-            }
 
-            if (timedExecutionAttribute != null)
-            {
-                var intervalMilliseconds = (int)timedExecutionAttribute.ConstructorArguments[0].Value;
-                var runInBackground = (bool)timedExecutionAttribute.ConstructorArguments[1].Value;
+            return sb.ToString();
+        }
 
-                sb.Append($@"
+        private string HandleTimedExecutionAttribute(string methodName, ImmutableArray<AttributeData> attributes)
+        {
+            var timedExecutionAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "TimedExecutionAttribute");
+            if (timedExecutionAttribute == null) return string.Empty;
+
+            var intervalMilliseconds = (int)timedExecutionAttribute.ConstructorArguments[0].Value;
+            var runInBackground = (bool)timedExecutionAttribute.ConstructorArguments[1].Value;
+
+            var sb = new StringBuilder($@"
         private System.Timers.Timer _{methodName}_timer;
         private Thread _{methodName}_backgroundThread;
 
@@ -284,14 +310,18 @@ namespace {@namespace}
             _{methodName}_timer?.Dispose();
         }}
 ");
-            }
 
-            if(cacheAttribute != null)
-            {
-                var cacheDuration = (int)cacheAttribute.ConstructorArguments[0].Value;
+            return sb.ToString();
+        }
 
-                sb.Append($@"
+        private string HandleCacheAttribute(string methodName, string returnType, string parameters, string arguments, ImmutableArray<AttributeData> attributes)
+        {
+            var cacheAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "CacheAttribute");
+            if (cacheAttribute == null) return string.Empty;
 
+            var cacheDuration = (int)cacheAttribute.ConstructorArguments[0].Value;
+
+            var sb = new StringBuilder($@"
         private {returnType} {methodName}_cachedValue;
         private DateTime {methodName}_cacheExpiration = DateTime.MinValue;
 
@@ -306,8 +336,18 @@ namespace {@namespace}
             return {methodName}_cachedValue;
         }}
 ");
-            }
 
+            return sb.ToString();
+        }
+
+        private string HandleRetryFallbackAttributes(string methodName, string returnType, string parameters, string arguments, ImmutableArray<AttributeData> attributes)
+        {
+            var retryAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "RetryAttribute");
+            var fallbackAttribute = attributes.FirstOrDefault(ad => ad.AttributeClass?.Name == "FallbackAttribute");
+
+            if (retryAttribute == null && fallbackAttribute == null) return string.Empty;
+
+            var sb = new StringBuilder();
 
             if (retryAttribute != null && fallbackAttribute != null)
             {
@@ -391,12 +431,6 @@ namespace {@namespace}
 ");
             }
 
-
-            sb.Append($@"
-    }}
-}}
-");
-
             return sb.ToString();
         }
 
@@ -414,5 +448,4 @@ namespace {@namespace}
             }
         }
     }
-
 }

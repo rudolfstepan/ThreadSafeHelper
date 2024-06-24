@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
 	<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\ThreadSafeHelperGenerator\ThreadSafeHelperGenerator.csproj" OutputItemType="Analyzer" />
   </ItemGroup>
